@@ -206,7 +206,7 @@ function renderAttemptsToSuccessChart(progressData) {
     label.setAttribute('y', CHART_HEIGHT - 10);
     label.setAttribute('text-anchor', 'end');
     label.setAttribute('dominant-baseline', 'hanging');
-    label.setAttribute('font-size', '16');
+    label.setAttribute('font-size', '18');
     label.setAttribute('fill', '#f3f4f6');
     label.setAttribute('transform', `rotate(-90 ${x} ${CHART_HEIGHT - 10})`);
     label.textContent = segment;
@@ -219,7 +219,7 @@ function renderAttemptsToSuccessChart(progressData) {
     text.setAttribute('x', 45);
     text.setAttribute('y', y + 4);
     text.setAttribute('text-anchor', 'end');
-    text.setAttribute('font-size', '16');
+    text.setAttribute('font-size', '18');
     text.setAttribute('fill', '#f3f4f6');
     text.textContent = i;
     svg.appendChild(text);
@@ -322,7 +322,7 @@ function renderXpChart(xpData) {
     valueText.setAttribute("x", x + 20);
     valueText.setAttribute("y", y - 5);
     valueText.setAttribute("text-anchor", "middle");
-    valueText.setAttribute("font-size", "16");
+    valueText.setAttribute("font-size", "18");
     valueText.setAttribute("fill", "#f3f4f6");
     valueText.textContent = formatXP(value);
     svg.appendChild(valueText);
@@ -334,7 +334,7 @@ function renderXpChart(xpData) {
     labelText.setAttribute("y", labelY);
     labelText.setAttribute("text-anchor", "end");
     labelText.setAttribute("dominant-baseline", "hanging");
-    labelText.setAttribute("font-size", "16");
+    labelText.setAttribute("font-size", "18");
     labelText.setAttribute("fill", "#f3f4f6");
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
