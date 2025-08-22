@@ -207,7 +207,7 @@ function renderAttemptsToSuccessChart(progressData) {
     label.setAttribute('text-anchor', 'end');
     label.setAttribute('dominant-baseline', 'hanging');
     label.setAttribute('font-size', '16');
-    label.setAttribute('fill', '#374151');
+    label.setAttribute('fill', '#f3f4f6');
     label.setAttribute('transform', `rotate(-90 ${x} ${CHART_HEIGHT - 10})`);
     label.textContent = segment;
     svg.appendChild(label);
@@ -220,7 +220,7 @@ function renderAttemptsToSuccessChart(progressData) {
     text.setAttribute('y', y + 4);
     text.setAttribute('text-anchor', 'end');
     text.setAttribute('font-size', '16');
-    text.setAttribute('fill', '#374151');
+    text.setAttribute('fill', '#f3f4f6');
     text.textContent = i;
     svg.appendChild(text);
 
@@ -323,7 +323,7 @@ function renderXpChart(xpData) {
     valueText.setAttribute("y", y - 5);
     valueText.setAttribute("text-anchor", "middle");
     valueText.setAttribute("font-size", "16");
-    valueText.setAttribute("fill", "#4B5563");
+    valueText.setAttribute("fill", "#f3f4f6");
     valueText.textContent = formatXP(value);
     svg.appendChild(valueText);
 
@@ -335,7 +335,7 @@ function renderXpChart(xpData) {
     labelText.setAttribute("text-anchor", "end");
     labelText.setAttribute("dominant-baseline", "hanging");
     labelText.setAttribute("font-size", "16");
-    labelText.setAttribute("fill", "#374151");
+    labelText.setAttribute("fill", "#f3f4f6");
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
     svg.appendChild(labelText);
@@ -472,8 +472,8 @@ div.innerHTML = `
         <div class="h-2 bg-red-400" style="width:${receivedPct}%;"></div>
       </div>
       <div class="text-center mt-4">
-        <p class="text-3xl font-bold ${ratioClass}">${auditRatioText}</p>
-        <p class="text-xs ${ratioClass}">${ratioMessage}</p>
+        <p class="text-5xl font-bold ${ratioClass}">${auditRatioText}</p>
+        <p class="text-xl ${ratioClass}">${ratioMessage}</p>
       </div>
     </div>
   </div>
@@ -486,7 +486,7 @@ div.innerHTML = `
       <button data-group="piscine-js" class="xp-btn flex-1 px-4 py-2 font-bold border-t border-b border-gray-600 truncate bg-gray-700 text-gray-200 hover:bg-blue-600">Piscine JS</button>
       <button data-group="bh-piscine" class="xp-btn flex-1 px-4 py-2 font-bold rounded-r border border-gray-600 truncate bg-gray-700 text-gray-200 hover:bg-blue-600">BH Piscine</button>
     </div>
-    <div class="text-right text-2xl font-bold mt-2 text-gray-100">
+    <div class="text-right text-4xl font-bold mt-2 text-gray-100">
       Total XP: ${formatXP(totalXP)}
     </div>
     <div id="xp-chart" class="w-full flex-1"></div>
