@@ -574,4 +574,9 @@ document.getElementById('user-info').addEventListener('change', (e) => {
   }
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn.addEventListener('click', logout);
+});
+
 init();
