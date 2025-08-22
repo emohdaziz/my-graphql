@@ -536,7 +536,7 @@ function setupXpButtons(selectedGroup) {
 function logout() {
   localStorage.removeItem('jwt_token');
   localStorage.removeItem('user_id');
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 let cachedUserData = null;
