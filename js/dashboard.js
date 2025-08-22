@@ -416,10 +416,9 @@ function displayUserData(data, selectedGroup = 'bh-module') {
   }
 
 div.innerHTML = `
-<div class="flex gap-4 w-full">
-
+<div class="flex flex-col md:flex-row gap-4 w-full">
   <!-- Left column: Card 1 + Card 2 stacked -->
-  <div class="flex flex-col gap-4" style="flex: 1 1 33%;">
+  <div class="flex flex-col gap-4 md:flex-1 md:basis-1/3">
 
     <!-- Card 1: User Info -->
     <div class="user-card bg-gray-800 p-4 rounded shadow text-gray-200">
@@ -480,31 +479,24 @@ div.innerHTML = `
   </div>
 
   <!-- Card 3: XP -->
-  <div class="user-card bg-gray-800 p-4 rounded shadow flex flex-col gap-4 text-gray-200" style="flex: 1 1 33%;">
+  <div class="user-card bg-gray-800 p-4 rounded shadow flex flex-col gap-4 text-gray-200 md:flex-1 md:basis-1/3">
     <h3 class="text-xl font-bold mb-4">XP Overview</h3>
-
-    <!-- Segmented control -->
     <div id="xp-group-buttons" class="flex w-full mb-2">
       <button data-group="bh-module" class="xp-btn flex-1 px-4 py-2 font-bold rounded-l border border-gray-600 truncate bg-gray-700 text-gray-200 hover:bg-blue-600">BH Module</button>
       <button data-group="piscine-js" class="xp-btn flex-1 px-4 py-2 font-bold border-t border-b border-gray-600 truncate bg-gray-700 text-gray-200 hover:bg-blue-600">Piscine JS</button>
       <button data-group="bh-piscine" class="xp-btn flex-1 px-4 py-2 font-bold rounded-r border border-gray-600 truncate bg-gray-700 text-gray-200 hover:bg-blue-600">BH Piscine</button>
     </div>
-
-    <!-- Total XP -->
     <div class="text-right text-2xl font-bold mt-2 text-gray-100">
       Total XP: ${formatXP(totalXP)}
     </div>
-
-    <!-- XP Chart -->
     <div id="xp-chart" class="w-full flex-1"></div>
   </div>
 
   <!-- Card 4: Attempts to Success -->
-  <div class="user-card bg-gray-800 p-4 rounded shadow flex flex-col gap-4 text-gray-200" style="flex: 1 1 33%;">
+  <div class="user-card bg-gray-800 p-4 rounded shadow flex flex-col gap-4 text-gray-200 md:flex-1 md:basis-1/3">
     <h3 class="text-xl font-bold mb-4">Attempts to Success</h3>
     <div id="attempts-success-chart" class="w-full flex-1"></div>
   </div>
-
 </div>
 `;
 
