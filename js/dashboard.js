@@ -537,7 +537,7 @@ async function init() {
   const token = localStorage.getItem('jwt_token');
   if (!token) {
     document.getElementById('user-info').innerHTML = '<p class="text-red-500">No login data found. Redirecting...</p>';
-    setTimeout(() => window.location.href = 'login.html', 2000);
+    setTimeout(() => window.location.href = 'index.html', 2000);
     return;
   }
 
