@@ -156,7 +156,6 @@ function renderAttemptsToSuccessChart(progressData) {
   svg.setAttribute('viewBox', `0 0 ${chartWidth} ${CHART_HEIGHT}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-  // Axes
   const yAxis = document.createElementNS(svgNS, 'line');
   yAxis.setAttribute('x1', 50);
   yAxis.setAttribute('y1', TOP_PADDING);
@@ -263,7 +262,7 @@ function renderAttemptsToSuccessChart(progressData) {
 }
 
 let currentPage = 0;
-const barsPerPage = 10;
+const barsPerPage = 5;
 
 function renderXpChart(xpData) {
   const chartContainer = document.querySelector("#xp-chart");
@@ -289,7 +288,9 @@ function renderXpChart(xpData) {
   const pageLabels = labels.slice(start, end);
   const pageValues = values.slice(start, end);
 
-  const chartWidth = barsPerPage * 60 + 50;
+  const barSpacing = 100; 
+  const barWidth = 40;
+  const chartWidth = barsPerPage * barSpacing + 100;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -301,13 +302,13 @@ function renderXpChart(xpData) {
   pageLabels.forEach((label, i) => {
     const value = pageValues[i];
     const barHeight = (value / maxValue) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
-    const x = i * 60 + 30;
+    const x = i * barSpacing + 60;
     const y = CHART_HEIGHT - BOTTOM_PADDING - barHeight;
 
     const rect = document.createElementNS(svgNS, "rect");
     rect.setAttribute("x", x);
     rect.setAttribute("y", y);
-    rect.setAttribute("width", 40);
+    rect.setAttribute("width", barWidth);
     rect.setAttribute("height", barHeight);
     rect.setAttribute("fill", "#3B82F6");
     rect.setAttribute("rx", 4);
@@ -315,26 +316,24 @@ function renderXpChart(xpData) {
     const title = document.createElementNS(svgNS, "title");
     title.textContent = `${label}: ${formatXP(value)}`;
     rect.appendChild(title);
-
     svg.appendChild(rect);
 
     const valueText = document.createElementNS(svgNS, "text");
-    valueText.setAttribute("x", x + 20);
-    valueText.setAttribute("y", y - 5);
+    valueText.setAttribute("x", x + barWidth / 2);
+    valueText.setAttribute("y", y - 8);
     valueText.setAttribute("text-anchor", "middle");
-    valueText.setAttribute("font-size", "18");
+    valueText.setAttribute("font-size", "16");
     valueText.setAttribute("fill", "#f3f4f6");
     valueText.textContent = formatXP(value);
     svg.appendChild(valueText);
 
     const labelText = document.createElementNS(svgNS, "text");
-    const labelX = x + 20;
-    const labelY = CHART_HEIGHT - 10;
+    const labelX = x + barWidth + 20;
+    const labelY = CHART_HEIGHT - BOTTOM_PADDING;
     labelText.setAttribute("x", labelX);
     labelText.setAttribute("y", labelY);
-    labelText.setAttribute("text-anchor", "end");
-    labelText.setAttribute("dominant-baseline", "hanging");
-    labelText.setAttribute("font-size", "18");
+    labelText.setAttribute("text-anchor", "start");
+    labelText.setAttribute("font-size", "16");
     labelText.setAttribute("fill", "#f3f4f6");
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
@@ -368,6 +367,7 @@ function renderXpChart(xpData) {
   controls.appendChild(nextBtn);
   chartContainer.appendChild(controls);
 }
+
 
 function displayUserData(data, selectedGroup = 'bh-module') {
   const div = document.getElementById('user-info');
