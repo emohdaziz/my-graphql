@@ -303,7 +303,7 @@ function renderXpChart(xpData) {
     labelText.setAttribute("y", labelY);
     labelText.setAttribute("text-anchor", "start");
     labelText.setAttribute("font-size", "18");
-    labelText.setAttribute("fill", "#f3f4f6");
+    labelText.setAttribute("fill", '#8e949e60');
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
     svg.appendChild(labelText);
