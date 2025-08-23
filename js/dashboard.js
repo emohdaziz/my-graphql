@@ -102,11 +102,10 @@ function lastSegment(path) {
 }
 
 let attemptsPage = 0;
-const attemptsPerPage = 10;
-
-const CHART_HEIGHT = 250;
-const TOP_PADDING = 30;
-const BOTTOM_PADDING = 15;
+const attemptsPerPage = 5;
+const CHART_HEIGHT = 300;
+const TOP_PADDING = 20;
+const BOTTOM_PADDING = 50; // more space for labels
 
 function renderAttemptsToSuccessChart(progressData) {
   const container = document.getElementById('attempts-success-chart');
@@ -117,6 +116,7 @@ function renderAttemptsToSuccessChart(progressData) {
     return;
   }
 
+  // Group by exercise
   const groupedBySegment = progressData.reduce((acc, entry) => {
     if (!entry.path) return acc;
     const parts = entry.path.split('/').filter(Boolean);
@@ -144,99 +144,69 @@ function renderAttemptsToSuccessChart(progressData) {
   const segments = segmentsAll.slice(start, end);
 
   const maxAttempts = Math.max(...Object.values(attemptsToSuccess));
-  const chartWidth = Math.max(600, segments.length * 50);
-
-  const scaleX = (i) => 50 + (i * (chartWidth - 100)) / (segments.length - 1 || 1);
-  const scaleY = (val) => CHART_HEIGHT - BOTTOM_PADDING - (val / maxAttempts) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
+  const svgWidth = 150; // fixed width for vertical chart
+  const svgHeight = CHART_HEIGHT;
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('width', '100%');
-  svg.setAttribute('height', CHART_HEIGHT);
-  svg.setAttribute('viewBox', `0 0 ${chartWidth} ${CHART_HEIGHT}`);
+  svg.setAttribute('height', svgHeight);
+  svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-  const yAxis = document.createElementNS(svgNS, 'line');
-  yAxis.setAttribute('x1', 50);
-  yAxis.setAttribute('y1', TOP_PADDING);
-  yAxis.setAttribute('x2', 50);
-  yAxis.setAttribute('y2', CHART_HEIGHT - BOTTOM_PADDING);
-  yAxis.setAttribute('stroke', '#000');
-  svg.appendChild(yAxis);
+  const ySpacing = (svgHeight - TOP_PADDING - BOTTOM_PADDING) / (segments.length || 1);
 
-  const xAxis = document.createElementNS(svgNS, 'line');
-  xAxis.setAttribute('x1', 50);
-  xAxis.setAttribute('y1', CHART_HEIGHT - BOTTOM_PADDING);
-  xAxis.setAttribute('x2', chartWidth - 50);
-  xAxis.setAttribute('y2', CHART_HEIGHT - BOTTOM_PADDING);
-  xAxis.setAttribute('stroke', '#000');
-  svg.appendChild(xAxis);
+  segments.forEach((segment, i) => {
+    const attempts = attemptsToSuccess[segment];
+    const y = TOP_PADDING + i * ySpacing + ySpacing / 2;
 
-  const points = segments.map((segment, i) => {
-    const x = scaleX(i);
-    const y = scaleY(attemptsToSuccess[segment]);
-    return { x, y, segment, attempts: attemptsToSuccess[segment] };
-  });
-
-  const linePath = document.createElementNS(svgNS, 'path');
-  const d = points.map(({ x, y }, i) => (i === 0 ? `M${x} ${y}` : `L${x} ${y}`)).join(' ');
-  linePath.setAttribute('d', d);
-  linePath.setAttribute('stroke', '#3B82F6');
-  linePath.setAttribute('stroke-width', '2');
-  linePath.setAttribute('fill', 'none');
-  svg.appendChild(linePath);
-
-  points.forEach(({ x, y, segment, attempts }) => {
-    const circle = document.createElementNS(svgNS, 'circle');
-    circle.setAttribute('cx', x);
-    circle.setAttribute('cy', y);
-    circle.setAttribute('r', 6);
-    circle.setAttribute('fill', '#3B82F6');
-    circle.setAttribute('cursor', 'pointer');
-
-    const title = document.createElementNS(svgNS, 'title');
-    title.textContent = `${segment}: ${attempts} attempt${attempts > 1 ? 's' : ''}`;
-    circle.appendChild(title);
-
-    svg.appendChild(circle);
-
-    const label = document.createElementNS(svgNS, 'text');
-    label.setAttribute('x', x);
-    label.setAttribute('y', CHART_HEIGHT - 10);
-    label.setAttribute('text-anchor', 'end');
-    label.setAttribute('dominant-baseline', 'hanging');
-    label.setAttribute('font-size', '18');
-    label.setAttribute('fill', '#f3f4f6');
-    label.setAttribute('transform', `rotate(-90 ${x} ${CHART_HEIGHT - 10})`);
-    label.textContent = segment;
-    svg.appendChild(label);
-  });
-
-  for (let i = 0; i <= maxAttempts; i += Math.ceil(maxAttempts / 5) || 1) {
-    const y = scaleY(i);
-    const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', 45);
-    text.setAttribute('y', y + 4);
-    text.setAttribute('text-anchor', 'end');
-    text.setAttribute('font-size', '18');
-    text.setAttribute('fill', '#f3f4f6');
-    text.textContent = i;
-    svg.appendChild(text);
-
+    // line (horizontal)
     const line = document.createElementNS(svgNS, 'line');
     line.setAttribute('x1', 50);
     line.setAttribute('y1', y);
-    line.setAttribute('x2', chartWidth - 50);
+    line.setAttribute('x2', 50 + (attempts / maxAttempts) * 80); // length proportional to attempts
     line.setAttribute('y2', y);
-    line.setAttribute('stroke', '#e5e7eb');
-    line.setAttribute('stroke-dasharray', '2,2');
+    line.setAttribute('stroke', '#3B82F6');
+    line.setAttribute('stroke-width', '2');
     svg.appendChild(line);
-  }
+
+    // circle at end of line
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', 50 + (attempts / maxAttempts) * 80);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', 6);
+    circle.setAttribute('fill', '#3B82F6');
+    svg.appendChild(circle);
+
+    // attempts number above circle
+    const valueText = document.createElementNS(svgNS, 'text');
+    valueText.setAttribute('x', 50 + (attempts / maxAttempts) * 80);
+    valueText.setAttribute('y', y - 10);
+    valueText.setAttribute('text-anchor', 'middle');
+    valueText.setAttribute('font-size', '18');
+    valueText.setAttribute('fill', '#f3f4f6');
+    valueText.textContent = attempts;
+    svg.appendChild(valueText);
+
+    // exercise name below line
+    const labelText = document.createElementNS(svgNS, 'text');
+    labelText.setAttribute('x', 50);
+    labelText.setAttribute('y', y + 20);
+    labelText.setAttribute('text-anchor', 'middle');
+    labelText.setAttribute('font-size', '18');
+    labelText.setAttribute('fill', '#f3f4f6');
+    labelText.textContent = segment.length > 25 ? segment.slice(0, 25) + '…' : segment;
+    const title = document.createElementNS(svgNS, 'title');
+    title.textContent = segment; // full name on hover
+    labelText.appendChild(title);
+    svg.appendChild(labelText);
+  });
 
   container.appendChild(svg);
 
+  // Pagination
   const controls = document.createElement('div');
-  controls.className = 'flex justify-center gap-4 mt-20';
+  controls.className = 'flex justify-center gap-4 mt-4';
 
   const prevBtn = document.createElement('button');
   prevBtn.textContent = '< Prev';
@@ -322,7 +292,7 @@ function renderXpChart(xpData) {
     valueText.setAttribute("x", x + barWidth / 2);
     valueText.setAttribute("y", y - 8);
     valueText.setAttribute("text-anchor", "middle");
-    valueText.setAttribute("font-size", "16");
+    valueText.setAttribute("font-size", "18");
     valueText.setAttribute("fill", "#f3f4f6");
     valueText.textContent = formatXP(value);
     svg.appendChild(valueText);
@@ -333,7 +303,7 @@ function renderXpChart(xpData) {
     labelText.setAttribute("x", labelX);
     labelText.setAttribute("y", labelY);
     labelText.setAttribute("text-anchor", "start");
-    labelText.setAttribute("font-size", "16");
+    labelText.setAttribute("font-size", "18");
     labelText.setAttribute("fill", "#f3f4f6");
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
