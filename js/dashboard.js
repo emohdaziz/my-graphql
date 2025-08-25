@@ -534,10 +534,8 @@ function setupXpButtons(selectedGroup) {
 function logout() {
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
-  window.history.replaceState(null, "", window.location.href);
-  setTimeout(function () {
-    window.location.href = "index.html";
-  }, 1000);
+  window.location.href =
+    window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
 }
 
 let cachedUserData = null;
@@ -582,15 +580,6 @@ document.getElementById("user-info").addEventListener("change", (e) => {
 document.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.getElementById("logout-btn");
   logoutBtn.addEventListener("click", logout);
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("jwt_token");
-  if (!token) {
-    window.location.href =
-      window.location.origin +
-      window.location.pathname.replace(/\/[^/]*$/, "/");
-  }
 });
 
 init();
