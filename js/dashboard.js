@@ -1,8 +1,6 @@
 window.onload = function () {
-  // Check if jwt_token is in localStorage
   if (!localStorage.getItem("jwt_token")) {
-    // Redirect to login page if not logged in
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 
   function parseJwt(token) {
