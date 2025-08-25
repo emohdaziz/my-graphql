@@ -535,9 +535,6 @@ function logout() {
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
   window.history.replaceState(null, "", window.location.href);
-  window.history.back();
-  window.history.forward();
-
   setTimeout(function () {
     window.location.href = "index.html";
   }, 1000);
