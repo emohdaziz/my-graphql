@@ -1,12 +1,12 @@
 function parseJwt(token) {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -39,53 +39,57 @@ async function fetchUserData(token, userId) {
       }
     }
   `;
-  const res = await fetch('https://learn.reboot01.com/api/graphql-engine/v1/graphql', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query, variables: { userId } }),
-  });
+  const res = await fetch(
+    "https://learn.reboot01.com/api/graphql-engine/v1/graphql",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables: { userId } }),
+    }
+  );
   const json = await res.json();
-  if (json.errors) throw new Error(json.errors.map(e => e.message).join('; '));
+  if (json.errors)
+    throw new Error(json.errors.map((e) => e.message).join("; "));
   return json.data;
 }
 
 function formatXP(bytes) {
   if (bytes >= 1_000_000) {
-    return (bytes / 1_000_000).toFixed(2) + ' MB';
+    return (bytes / 1_000_000).toFixed(2) + " MB";
   } else if (bytes >= 1_000) {
-    return Math.round(bytes / 1_000) + ' kB';
+    return Math.round(bytes / 1_000) + " kB";
   } else {
-    return bytes + ' B';
+    return bytes + " B";
   }
 }
 
 function parsePath(path) {
-  const parts = path.toLowerCase().split('/');
+  const parts = path.toLowerCase().split("/");
   return {
-    group: parts[2] || '',
-    subproject: parts[3] || '',
-    subsub: parts[4] || '',
+    group: parts[2] || "",
+    subproject: parts[3] || "",
+    subsub: parts[4] || "",
   };
 }
 
 function filterXpByGroup(xpArray, group) {
-  return xpArray.filter(xp => {
+  return xpArray.filter((xp) => {
     if (!xp.path) return false;
     const { group: xpGroup, subproject, subsub } = parsePath(xp.path);
 
-    if (group === 'bh-piscine') return xpGroup === 'bh-piscine';
+    if (group === "bh-piscine") return xpGroup === "bh-piscine";
 
-    if (group === 'bh-module') {
-      if (xpGroup !== 'bh-module') return false;
-      if (subproject === 'piscine-js' && subsub) return false;
+    if (group === "bh-module") {
+      if (xpGroup !== "bh-module") return false;
+      if (subproject === "piscine-js" && subsub) return false;
       return true;
     }
 
-    if (group === 'piscine-js') {
-      return xpGroup === 'bh-module' && subproject === 'piscine-js' && subsub;
+    if (group === "piscine-js") {
+      return xpGroup === "bh-module" && subproject === "piscine-js" && subsub;
     }
 
     return false;
@@ -93,12 +97,12 @@ function filterXpByGroup(xpArray, group) {
 }
 
 function lastSegment(path) {
-  if (!path) return '';
-  const parts = path.split('/');
+  if (!path) return "";
+  const parts = path.split("/");
   for (let i = parts.length - 1; i >= 0; i--) {
     if (parts[i]) return parts[i];
   }
-  return '';
+  return "";
 }
 
 let attemptsPage = 0;
@@ -112,17 +116,18 @@ const MAX_RADIUS = 30;
 const MAX_LABEL_LENGTH = 12;
 
 function renderAttemptsToSuccessChart(progressData) {
-  const container = document.getElementById('attempts-success-chart');
-  container.innerHTML = '';
+  const container = document.getElementById("attempts-success-chart");
+  container.innerHTML = "";
 
   if (!progressData || progressData.length === 0) {
-    container.innerHTML = '<p class="text-gray-500">No progress data available.</p>';
+    container.innerHTML =
+      '<p class="text-gray-500">No progress data available.</p>';
     return;
   }
 
   const groupedBySegment = progressData.reduce((acc, entry) => {
     if (!entry.path) return acc;
-    const parts = entry.path.split('/').filter(Boolean);
+    const parts = entry.path.split("/").filter(Boolean);
     const segment = parts[parts.length - 1];
     if (!acc[segment]) acc[segment] = [];
     acc[segment].push(entry);
@@ -132,13 +137,15 @@ function renderAttemptsToSuccessChart(progressData) {
   const attemptsToSuccess = {};
   for (const [segment, attempts] of Object.entries(groupedBySegment)) {
     attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    const indexSuccess = attempts.findIndex(a => a.grade === 1);
-    attemptsToSuccess[segment] = indexSuccess === -1 ? attempts.length : indexSuccess + 1;
+    const indexSuccess = attempts.findIndex((a) => a.grade === 1);
+    attemptsToSuccess[segment] =
+      indexSuccess === -1 ? attempts.length : indexSuccess + 1;
   }
 
   const segmentsAll = Object.keys(attemptsToSuccess).sort();
   if (segmentsAll.length === 0) {
-    container.innerHTML = '<p class="text-gray-500">No valid progress data available.</p>';
+    container.innerHTML =
+      '<p class="text-gray-500">No valid progress data available.</p>';
     return;
   }
 
@@ -149,53 +156,59 @@ function renderAttemptsToSuccessChart(progressData) {
   const maxAttempts = Math.max(...Object.values(attemptsToSuccess));
   const minAttempts = Math.min(...Object.values(attemptsToSuccess));
 
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', CHART_HEIGHT);
-  svg.setAttribute('viewBox', `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", CHART_HEIGHT);
+  svg.setAttribute("viewBox", `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
   const spacingX = CHART_WIDTH / (segments.length + 1);
-  const centerY = (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING) / 2 + TOP_PADDING;
+  const centerY =
+    (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING) / 2 + TOP_PADDING;
 
   segments.forEach((segment, i) => {
     const attempts = attemptsToSuccess[segment];
-    const radius = MIN_RADIUS + ((attempts - minAttempts) / (maxAttempts - minAttempts || 1)) * (MAX_RADIUS - MIN_RADIUS);
+    const radius =
+      MIN_RADIUS +
+      ((attempts - minAttempts) / (maxAttempts - minAttempts || 1)) *
+        (MAX_RADIUS - MIN_RADIUS);
     const x = spacingX * (i + 1);
 
-    const circle = document.createElementNS(svgNS, 'circle');
-    circle.setAttribute('cx', x);
-    circle.setAttribute('cy', centerY);
-    circle.setAttribute('r', radius);
-    circle.setAttribute('fill', '#3B82F6');
-    circle.setAttribute('cursor', 'pointer');
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", centerY);
+    circle.setAttribute("r", radius);
+    circle.setAttribute("fill", "#3B82F6");
+    circle.setAttribute("cursor", "pointer");
 
-    const title = document.createElementNS(svgNS, 'title');
-    title.textContent = `${segment}: ${attempts} attempt${attempts > 1 ? 's' : ''}`;
+    const title = document.createElementNS(svgNS, "title");
+    title.textContent = `${segment}: ${attempts} attempt${
+      attempts > 1 ? "s" : ""
+    }`;
     circle.appendChild(title);
 
     svg.appendChild(circle);
 
-    const valueText = document.createElementNS(svgNS, 'text');
-    valueText.setAttribute('x', x);
-    valueText.setAttribute('y', centerY + 5);
-    valueText.setAttribute('text-anchor', 'middle');
-    valueText.setAttribute('font-size', '14');
-    valueText.setAttribute('fill', '#f3f4f6');
+    const valueText = document.createElementNS(svgNS, "text");
+    valueText.setAttribute("x", x);
+    valueText.setAttribute("y", centerY + 5);
+    valueText.setAttribute("text-anchor", "middle");
+    valueText.setAttribute("font-size", "14");
+    valueText.setAttribute("fill", "#f3f4f6");
     valueText.textContent = attempts;
     svg.appendChild(valueText);
 
-    const labelText = document.createElementNS(svgNS, 'text');
-    labelText.setAttribute('x', x);
-    labelText.setAttribute('y', centerY + radius + 18);
-    labelText.setAttribute('text-anchor', 'middle');
-    labelText.setAttribute('font-size', '14');
-    labelText.setAttribute('fill', '#f3f4f6');
+    const labelText = document.createElementNS(svgNS, "text");
+    labelText.setAttribute("x", x);
+    labelText.setAttribute("y", centerY + radius + 18);
+    labelText.setAttribute("text-anchor", "middle");
+    labelText.setAttribute("font-size", "14");
+    labelText.setAttribute("fill", "#f3f4f6");
 
     let displayName = segment;
     if (segment.length > MAX_LABEL_LENGTH) {
-      displayName = segment.slice(0, MAX_LABEL_LENGTH - 3) + '...';
+      displayName = segment.slice(0, MAX_LABEL_LENGTH - 3) + "...";
     }
 
     labelText.textContent = displayName;
@@ -204,22 +217,24 @@ function renderAttemptsToSuccessChart(progressData) {
 
   container.appendChild(svg);
 
-  const controls = document.createElement('div');
-  controls.className = 'flex justify-center gap-4 mt-4';
+  const controls = document.createElement("div");
+  controls.className = "flex justify-center gap-4 mt-4";
 
-  const prevBtn = document.createElement('button');
-  prevBtn.textContent = '< Prev';
+  const prevBtn = document.createElement("button");
+  prevBtn.textContent = "< Prev";
   prevBtn.disabled = attemptsPage === 0;
-  prevBtn.className = 'px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50';
+  prevBtn.className =
+    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
   prevBtn.onclick = () => {
     attemptsPage--;
     renderAttemptsToSuccessChart(progressData);
   };
 
-  const nextBtn = document.createElement('button');
-  nextBtn.textContent = 'Next >';
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "Next >";
   nextBtn.disabled = end >= segmentsAll.length;
-  nextBtn.className = 'px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50';
+  nextBtn.className =
+    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
   nextBtn.onclick = () => {
     attemptsPage++;
     renderAttemptsToSuccessChart(progressData);
@@ -238,7 +253,8 @@ function renderXpChart(xpData) {
   chartContainer.innerHTML = "";
 
   if (!xpData || xpData.length === 0) {
-    chartContainer.innerHTML = '<p class="text-gray-500">No XP data available.</p>';
+    chartContainer.innerHTML =
+      '<p class="text-gray-500">No XP data available.</p>';
     return;
   }
 
@@ -257,7 +273,7 @@ function renderXpChart(xpData) {
   const pageLabels = labels.slice(start, end);
   const pageValues = values.slice(start, end);
 
-  const barSpacing = 100; 
+  const barSpacing = 100;
   const barWidth = 40;
   const chartWidth = barsPerPage * barSpacing + 100;
 
@@ -270,7 +286,8 @@ function renderXpChart(xpData) {
 
   pageLabels.forEach((label, i) => {
     const value = pageValues[i];
-    const barHeight = (value / maxValue) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
+    const barHeight =
+      (value / maxValue) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
     const x = i * barSpacing + 60;
     const y = CHART_HEIGHT - BOTTOM_PADDING - barHeight;
 
@@ -303,7 +320,7 @@ function renderXpChart(xpData) {
     labelText.setAttribute("y", labelY);
     labelText.setAttribute("text-anchor", "start");
     labelText.setAttribute("font-size", "18");
-    labelText.setAttribute("fill", '#8e949e60');
+    labelText.setAttribute("fill", "#8e949e60");
     labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
     labelText.textContent = label.split("/").pop();
     svg.appendChild(labelText);
@@ -317,7 +334,8 @@ function renderXpChart(xpData) {
   const prevBtn = document.createElement("button");
   prevBtn.textContent = "< Prev";
   prevBtn.disabled = currentPage === 0;
-  prevBtn.className = 'px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50';
+  prevBtn.className =
+    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
   prevBtn.onclick = () => {
     currentPage--;
     renderXpChart(xpData);
@@ -326,7 +344,8 @@ function renderXpChart(xpData) {
   const nextBtn = document.createElement("button");
   nextBtn.textContent = "Next >";
   nextBtn.disabled = end >= labels.length;
-  nextBtn.className = 'px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50';
+  nextBtn.className =
+    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
   nextBtn.onclick = () => {
     currentPage++;
     renderXpChart(xpData);
@@ -337,9 +356,8 @@ function renderXpChart(xpData) {
   chartContainer.appendChild(controls);
 }
 
-
-function displayUserData(data, selectedGroup = 'bh-module') {
-  const div = document.getElementById('user-info');
+function displayUserData(data, selectedGroup = "bh-module") {
+  const div = document.getElementById("user-info");
   const user = data.user_by_pk;
 
   if (!user) {
@@ -347,15 +365,18 @@ function displayUserData(data, selectedGroup = 'bh-module') {
     return;
   }
 
-  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-  const login = user.login ? `@${user.login}` : '';
-  const email = user.email || '';
-  const received = formatXP(user.totalDown) || '';
-  const done = formatXP(user.totalUp) || '';
-  const bonus = formatXP(user.totalUpBonus) || '';
+  const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+  const login = user.login ? `@${user.login}` : "";
+  const email = user.email || "";
+  const received = formatXP(user.totalDown) || "";
+  const done = formatXP(user.totalUp) || "";
+  const bonus = formatXP(user.totalUpBonus) || "";
 
   const filteredXp = filterXpByGroup(data.xp_view, selectedGroup);
-  const totalXP = filteredXp.reduce((sum, xp) => sum + parseFloat(xp.amount || 0), 0);
+  const totalXP = filteredXp.reduce(
+    (sum, xp) => sum + parseFloat(xp.amount || 0),
+    0
+  );
 
   const upRaw = Number(user.totalUp) || 0;
   const downRaw = Number(user.totalDown) || 0;
@@ -364,27 +385,28 @@ function displayUserData(data, selectedGroup = 'bh-module') {
   const donePct = (upRaw / maxBar) * 100;
   const receivedPct = (downRaw / maxBar) * 100;
 
-  const auditRatioText = downRaw > 0 ? (Math.round((upRaw / downRaw) * 10) / 10) : '∞';
+  const auditRatioText =
+    downRaw > 0 ? Math.round((upRaw / downRaw) * 10) / 10 : "∞";
 
   let ratioValue = downRaw > 0 ? upRaw / downRaw : Infinity;
-  let ratioMessage = '';
-  let ratioClass = '';
+  let ratioMessage = "";
+  let ratioClass = "";
 
   if (ratioValue === Infinity || ratioValue >= 2.0) {
-    ratioMessage = 'Excellent! You nailed it!';
-    ratioClass = 'text-green-600';
+    ratioMessage = "Excellent! You nailed it!";
+    ratioClass = "text-green-600";
   } else if (ratioValue >= 1.5) {
-    ratioMessage = 'Great! You’re on the right track!';
-    ratioClass = 'text-green-600';
+    ratioMessage = "Great! You’re on the right track!";
+    ratioClass = "text-green-600";
   } else if (ratioValue >= 1.0) {
-    ratioMessage = 'Hmm… not bad, but you can do better!';
-    ratioClass = 'text-amber-600';
+    ratioMessage = "Hmm… not bad, but you can do better!";
+    ratioClass = "text-amber-600";
   } else {
-    ratioMessage = 'Oops! You’ve got room to improve!';
-    ratioClass = 'text-red-600';
+    ratioMessage = "Oops! You’ve got room to improve!";
+    ratioClass = "text-red-600";
   }
 
-div.innerHTML = `
+  div.innerHTML = `
 <div class="flex flex-col md:flex-row gap-4 w-full">
   <!-- Left column: Card 1 + Card 2 stacked -->
   <div class="flex flex-col gap-4 md:flex-1 md:basis-1/3">
@@ -393,32 +415,44 @@ div.innerHTML = `
     <div class="user-card bg-gray-800 p-4 rounded shadow text-gray-200">
       <h3 class="text-xl font-bold mb-4">User Info</h3>
       <ul class="space-y-2">
-        ${fullName ? `
+        ${
+          fullName
+            ? `
           <li class="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1118.88 6.196a9 9 0 01-13.758 11.608z"/>
             </svg>
             <span class="font-semibold">Full Name:</span>
             <span class="ml-auto text-gray-200">${fullName}</span>
-          </li>` : ''}
+          </li>`
+            : ""
+        }
 
-        ${login ? `
+        ${
+          login
+            ? `
           <li class="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 10-8 0 4 4 0 008 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z"/>
             </svg>
             <span class="font-semibold">Username:</span>
             <span class="ml-auto text-gray-200">${login}</span>
-          </li>` : ''}
+          </li>`
+            : ""
+        }
 
-        ${email ? `
+        ${
+          email
+            ? `
           <li class="flex items-center gap-3 p-2 rounded hover:bg-gray-700 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12h2a2 2 0 012 2v6H4v-6a2 2 0 012-2h2m4-8v8m-4-4h8"/>
             </svg>
             <span class="font-semibold">Email:</span>
             <span class="ml-auto text-gray-200">${email}</span>
-          </li>` : ''}
+          </li>`
+            : ""
+        }
       </ul>
     </div>
 
@@ -432,7 +466,11 @@ div.innerHTML = `
       <div class="w-full h-2 bg-gray-700 rounded overflow-hidden my-2" role="progressbar" aria-valuenow="${upRaw}" aria-valuemin="0" aria-valuemax="${maxBar}">
         <div class="h-2 bg-green-500" style="width:${donePct}%;"></div>
       </div>
-      ${bonus ? `<div class="flex justify-end text-xs text-gray-400 mt-1">+ ${bonus}</div>` : ''}
+      ${
+        bonus
+          ? `<div class="flex justify-end text-xs text-gray-400 mt-1">+ ${bonus}</div>`
+          : ""
+      }
       <div class="flex justify-between text-sm mt-3">
         <span>Received</span>
         <span>${received}</span>
@@ -472,13 +510,12 @@ div.innerHTML = `
   renderXpChart(filteredXp);
   renderAttemptsToSuccessChart(data.progress);
 
-setupXpButtons(selectedGroup);
-
+  setupXpButtons(selectedGroup);
 }
 
 function setupXpButtons(selectedGroup) {
   const buttons = document.querySelectorAll("#xp-group-buttons .xp-btn");
-  buttons.forEach(btn => {
+  buttons.forEach((btn) => {
     if (btn.dataset.group === selectedGroup) {
       btn.classList.add("bg-blue-500", "text-white", "border-blue-500");
       btn.classList.remove("bg-white", "text-black", "border-gray-300");
@@ -495,24 +532,27 @@ function setupXpButtons(selectedGroup) {
 }
 
 function logout() {
-  localStorage.removeItem('jwt_token');
-  localStorage.removeItem('user_id');
-  window.location.href = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  localStorage.removeItem("jwt_token");
+  localStorage.removeItem("user_id");
+  window.location.href =
+    window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
 }
 
 let cachedUserData = null;
 
 async function init() {
-  const token = localStorage.getItem('jwt_token');
+  const token = localStorage.getItem("jwt_token");
   if (!token) {
-    document.getElementById('user-info').innerHTML = '<p class="text-red-500">No login data found. Redirecting...</p>';
-    setTimeout(() => window.location.href = 'index.html', 2000);
+    document.getElementById("user-info").innerHTML =
+      '<p class="text-red-500">No login data found. Redirecting...</p>';
+    setTimeout(() => (window.location.href = "index.html"), 2000);
     return;
   }
 
   const payload = parseJwt(token);
   if (!payload || !payload.sub) {
-    document.getElementById('user-info').innerHTML = '<p class="text-red-500">Invalid token. Please login again.</p>';
+    document.getElementById("user-info").innerHTML =
+      '<p class="text-red-500">Invalid token. Please login again.</p>';
     return;
   }
 
@@ -522,12 +562,14 @@ async function init() {
     cachedUserData = await fetchUserData(token, userId);
     displayUserData(cachedUserData);
   } catch (err) {
-    document.getElementById('user-info').innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
+    document.getElementById(
+      "user-info"
+    ).innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
   }
 }
 
-document.getElementById('user-info').addEventListener('change', (e) => {
-  if (e.target.id === 'xp-group-select') {
+document.getElementById("user-info").addEventListener("change", (e) => {
+  if (e.target.id === "xp-group-select") {
     const selectedGroup = e.target.value;
     if (cachedUserData) {
       displayUserData(cachedUserData, selectedGroup);
@@ -535,9 +577,16 @@ document.getElementById('user-info').addEventListener('change', (e) => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    const logoutBtn = document.getElementById('logout-btn');
-    logoutBtn.addEventListener('click', logout);
+document.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.getElementById("logout-btn");
+  logoutBtn.addEventListener("click", logout);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("jwt_token");
+  if (!token) {
+    window.location.href = "index.html";
+  }
 });
 
 init();
