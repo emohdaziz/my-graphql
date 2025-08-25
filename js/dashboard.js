@@ -1,21 +1,28 @@
-function parseJwt(token) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
+window.onload = function () {
+  // Check if jwt_token is in localStorage
+  if (!localStorage.getItem("jwt_token")) {
+    // Redirect to login page if not logged in
+    window.location.href = "login.html";
   }
-}
 
-async function fetchUserData(token, userId) {
-  const query = `
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchUserData(token, userId) {
+    const query = `
     query ($userId: Int!) {
       user_by_pk(id: $userId) {
         login
@@ -39,374 +46,374 @@ async function fetchUserData(token, userId) {
       }
     }
   `;
-  const res = await fetch(
-    "https://learn.reboot01.com/api/graphql-engine/v1/graphql",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables: { userId } }),
+    const res = await fetch(
+      "https://learn.reboot01.com/api/graphql-engine/v1/graphql",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query, variables: { userId } }),
+      }
+    );
+    const json = await res.json();
+    if (json.errors)
+      throw new Error(json.errors.map((e) => e.message).join("; "));
+    return json.data;
+  }
+
+  function formatXP(bytes) {
+    if (bytes >= 1_000_000) {
+      return (bytes / 1_000_000).toFixed(2) + " MB";
+    } else if (bytes >= 1_000) {
+      return Math.round(bytes / 1_000) + " kB";
+    } else {
+      return bytes + " B";
     }
-  );
-  const json = await res.json();
-  if (json.errors)
-    throw new Error(json.errors.map((e) => e.message).join("; "));
-  return json.data;
-}
-
-function formatXP(bytes) {
-  if (bytes >= 1_000_000) {
-    return (bytes / 1_000_000).toFixed(2) + " MB";
-  } else if (bytes >= 1_000) {
-    return Math.round(bytes / 1_000) + " kB";
-  } else {
-    return bytes + " B";
   }
-}
 
-function parsePath(path) {
-  const parts = path.toLowerCase().split("/");
-  return {
-    group: parts[2] || "",
-    subproject: parts[3] || "",
-    subsub: parts[4] || "",
-  };
-}
+  function parsePath(path) {
+    const parts = path.toLowerCase().split("/");
+    return {
+      group: parts[2] || "",
+      subproject: parts[3] || "",
+      subsub: parts[4] || "",
+    };
+  }
 
-function filterXpByGroup(xpArray, group) {
-  return xpArray.filter((xp) => {
-    if (!xp.path) return false;
-    const { group: xpGroup, subproject, subsub } = parsePath(xp.path);
+  function filterXpByGroup(xpArray, group) {
+    return xpArray.filter((xp) => {
+      if (!xp.path) return false;
+      const { group: xpGroup, subproject, subsub } = parsePath(xp.path);
 
-    if (group === "bh-piscine") return xpGroup === "bh-piscine";
+      if (group === "bh-piscine") return xpGroup === "bh-piscine";
 
-    if (group === "bh-module") {
-      if (xpGroup !== "bh-module") return false;
-      if (subproject === "piscine-js" && subsub) return false;
-      return true;
+      if (group === "bh-module") {
+        if (xpGroup !== "bh-module") return false;
+        if (subproject === "piscine-js" && subsub) return false;
+        return true;
+      }
+
+      if (group === "piscine-js") {
+        return xpGroup === "bh-module" && subproject === "piscine-js" && subsub;
+      }
+
+      return false;
+    });
+  }
+
+  function lastSegment(path) {
+    if (!path) return "";
+    const parts = path.split("/");
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i]) return parts[i];
     }
-
-    if (group === "piscine-js") {
-      return xpGroup === "bh-module" && subproject === "piscine-js" && subsub;
-    }
-
-    return false;
-  });
-}
-
-function lastSegment(path) {
-  if (!path) return "";
-  const parts = path.split("/");
-  for (let i = parts.length - 1; i >= 0; i--) {
-    if (parts[i]) return parts[i];
-  }
-  return "";
-}
-
-let attemptsPage = 0;
-const attemptsPerPage = 3;
-const CHART_HEIGHT = 250;
-const CHART_WIDTH = 500;
-const TOP_PADDING = 30;
-const BOTTOM_PADDING = 40;
-const MIN_RADIUS = 10;
-const MAX_RADIUS = 30;
-const MAX_LABEL_LENGTH = 12;
-
-function renderAttemptsToSuccessChart(progressData) {
-  const container = document.getElementById("attempts-success-chart");
-  container.innerHTML = "";
-
-  if (!progressData || progressData.length === 0) {
-    container.innerHTML =
-      '<p class="text-gray-500">No progress data available.</p>';
-    return;
+    return "";
   }
 
-  const groupedBySegment = progressData.reduce((acc, entry) => {
-    if (!entry.path) return acc;
-    const parts = entry.path.split("/").filter(Boolean);
-    const segment = parts[parts.length - 1];
-    if (!acc[segment]) acc[segment] = [];
-    acc[segment].push(entry);
-    return acc;
-  }, {});
+  let attemptsPage = 0;
+  const attemptsPerPage = 3;
+  const CHART_HEIGHT = 250;
+  const CHART_WIDTH = 500;
+  const TOP_PADDING = 30;
+  const BOTTOM_PADDING = 40;
+  const MIN_RADIUS = 10;
+  const MAX_RADIUS = 30;
+  const MAX_LABEL_LENGTH = 12;
 
-  const attemptsToSuccess = {};
-  for (const [segment, attempts] of Object.entries(groupedBySegment)) {
-    attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    const indexSuccess = attempts.findIndex((a) => a.grade === 1);
-    attemptsToSuccess[segment] =
-      indexSuccess === -1 ? attempts.length : indexSuccess + 1;
-  }
+  function renderAttemptsToSuccessChart(progressData) {
+    const container = document.getElementById("attempts-success-chart");
+    container.innerHTML = "";
 
-  const segmentsAll = Object.keys(attemptsToSuccess).sort();
-  if (segmentsAll.length === 0) {
-    container.innerHTML =
-      '<p class="text-gray-500">No valid progress data available.</p>';
-    return;
-  }
-
-  const start = attemptsPage * attemptsPerPage;
-  const end = start + attemptsPerPage;
-  const segments = segmentsAll.slice(start, end);
-
-  const maxAttempts = Math.max(...Object.values(attemptsToSuccess));
-  const minAttempts = Math.min(...Object.values(attemptsToSuccess));
-
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "100%");
-  svg.setAttribute("height", CHART_HEIGHT);
-  svg.setAttribute("viewBox", `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`);
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-
-  const spacingX = CHART_WIDTH / (segments.length + 1);
-  const centerY =
-    (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING) / 2 + TOP_PADDING;
-
-  segments.forEach((segment, i) => {
-    const attempts = attemptsToSuccess[segment];
-    const radius =
-      MIN_RADIUS +
-      ((attempts - minAttempts) / (maxAttempts - minAttempts || 1)) *
-        (MAX_RADIUS - MIN_RADIUS);
-    const x = spacingX * (i + 1);
-
-    const circle = document.createElementNS(svgNS, "circle");
-    circle.setAttribute("cx", x);
-    circle.setAttribute("cy", centerY);
-    circle.setAttribute("r", radius);
-    circle.setAttribute("fill", "#3B82F6");
-    circle.setAttribute("cursor", "pointer");
-
-    const title = document.createElementNS(svgNS, "title");
-    title.textContent = `${segment}: ${attempts} attempt${
-      attempts > 1 ? "s" : ""
-    }`;
-    circle.appendChild(title);
-
-    svg.appendChild(circle);
-
-    const valueText = document.createElementNS(svgNS, "text");
-    valueText.setAttribute("x", x);
-    valueText.setAttribute("y", centerY + 5);
-    valueText.setAttribute("text-anchor", "middle");
-    valueText.setAttribute("font-size", "14");
-    valueText.setAttribute("fill", "#f3f4f6");
-    valueText.textContent = attempts;
-    svg.appendChild(valueText);
-
-    const labelText = document.createElementNS(svgNS, "text");
-    labelText.setAttribute("x", x);
-    labelText.setAttribute("y", centerY + radius + 18);
-    labelText.setAttribute("text-anchor", "middle");
-    labelText.setAttribute("font-size", "14");
-    labelText.setAttribute("fill", "#f3f4f6");
-
-    let displayName = segment;
-    if (segment.length > MAX_LABEL_LENGTH) {
-      displayName = segment.slice(0, MAX_LABEL_LENGTH - 3) + "...";
+    if (!progressData || progressData.length === 0) {
+      container.innerHTML =
+        '<p class="text-gray-500">No progress data available.</p>';
+      return;
     }
 
-    labelText.textContent = displayName;
-    svg.appendChild(labelText);
-  });
+    const groupedBySegment = progressData.reduce((acc, entry) => {
+      if (!entry.path) return acc;
+      const parts = entry.path.split("/").filter(Boolean);
+      const segment = parts[parts.length - 1];
+      if (!acc[segment]) acc[segment] = [];
+      acc[segment].push(entry);
+      return acc;
+    }, {});
 
-  container.appendChild(svg);
+    const attemptsToSuccess = {};
+    for (const [segment, attempts] of Object.entries(groupedBySegment)) {
+      attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const indexSuccess = attempts.findIndex((a) => a.grade === 1);
+      attemptsToSuccess[segment] =
+        indexSuccess === -1 ? attempts.length : indexSuccess + 1;
+    }
 
-  const controls = document.createElement("div");
-  controls.className = "flex justify-center gap-4 mt-4";
+    const segmentsAll = Object.keys(attemptsToSuccess).sort();
+    if (segmentsAll.length === 0) {
+      container.innerHTML =
+        '<p class="text-gray-500">No valid progress data available.</p>';
+      return;
+    }
 
-  const prevBtn = document.createElement("button");
-  prevBtn.textContent = "< Prev";
-  prevBtn.disabled = attemptsPage === 0;
-  prevBtn.className =
-    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
-  prevBtn.onclick = () => {
-    attemptsPage--;
-    renderAttemptsToSuccessChart(progressData);
-  };
+    const start = attemptsPage * attemptsPerPage;
+    const end = start + attemptsPerPage;
+    const segments = segmentsAll.slice(start, end);
 
-  const nextBtn = document.createElement("button");
-  nextBtn.textContent = "Next >";
-  nextBtn.disabled = end >= segmentsAll.length;
-  nextBtn.className =
-    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
-  nextBtn.onclick = () => {
-    attemptsPage++;
-    renderAttemptsToSuccessChart(progressData);
-  };
+    const maxAttempts = Math.max(...Object.values(attemptsToSuccess));
+    const minAttempts = Math.min(...Object.values(attemptsToSuccess));
 
-  controls.appendChild(prevBtn);
-  controls.appendChild(nextBtn);
-  container.appendChild(controls);
-}
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", CHART_HEIGHT);
+    svg.setAttribute("viewBox", `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-let currentPage = 0;
-const barsPerPage = 5;
+    const spacingX = CHART_WIDTH / (segments.length + 1);
+    const centerY =
+      (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING) / 2 + TOP_PADDING;
 
-function renderXpChart(xpData) {
-  const chartContainer = document.querySelector("#xp-chart");
-  chartContainer.innerHTML = "";
+    segments.forEach((segment, i) => {
+      const attempts = attemptsToSuccess[segment];
+      const radius =
+        MIN_RADIUS +
+        ((attempts - minAttempts) / (maxAttempts - minAttempts || 1)) *
+          (MAX_RADIUS - MIN_RADIUS);
+      const x = spacingX * (i + 1);
 
-  if (!xpData || xpData.length === 0) {
-    chartContainer.innerHTML =
-      '<p class="text-gray-500">No XP data available.</p>';
-    return;
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", centerY);
+      circle.setAttribute("r", radius);
+      circle.setAttribute("fill", "#3B82F6");
+      circle.setAttribute("cursor", "pointer");
+
+      const title = document.createElementNS(svgNS, "title");
+      title.textContent = `${segment}: ${attempts} attempt${
+        attempts > 1 ? "s" : ""
+      }`;
+      circle.appendChild(title);
+
+      svg.appendChild(circle);
+
+      const valueText = document.createElementNS(svgNS, "text");
+      valueText.setAttribute("x", x);
+      valueText.setAttribute("y", centerY + 5);
+      valueText.setAttribute("text-anchor", "middle");
+      valueText.setAttribute("font-size", "14");
+      valueText.setAttribute("fill", "#f3f4f6");
+      valueText.textContent = attempts;
+      svg.appendChild(valueText);
+
+      const labelText = document.createElementNS(svgNS, "text");
+      labelText.setAttribute("x", x);
+      labelText.setAttribute("y", centerY + radius + 18);
+      labelText.setAttribute("text-anchor", "middle");
+      labelText.setAttribute("font-size", "14");
+      labelText.setAttribute("fill", "#f3f4f6");
+
+      let displayName = segment;
+      if (segment.length > MAX_LABEL_LENGTH) {
+        displayName = segment.slice(0, MAX_LABEL_LENGTH - 3) + "...";
+      }
+
+      labelText.textContent = displayName;
+      svg.appendChild(labelText);
+    });
+
+    container.appendChild(svg);
+
+    const controls = document.createElement("div");
+    controls.className = "flex justify-center gap-4 mt-4";
+
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "< Prev";
+    prevBtn.disabled = attemptsPage === 0;
+    prevBtn.className =
+      "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
+    prevBtn.onclick = () => {
+      attemptsPage--;
+      renderAttemptsToSuccessChart(progressData);
+    };
+
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next >";
+    nextBtn.disabled = end >= segmentsAll.length;
+    nextBtn.className =
+      "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
+    nextBtn.onclick = () => {
+      attemptsPage++;
+      renderAttemptsToSuccessChart(progressData);
+    };
+
+    controls.appendChild(prevBtn);
+    controls.appendChild(nextBtn);
+    container.appendChild(controls);
   }
 
-  const xpByPath = {};
-  xpData.forEach(({ path, amount }) => {
-    const key = path || "Unknown";
-    xpByPath[key] = (xpByPath[key] || 0) + parseFloat(amount);
-  });
+  let currentPage = 0;
+  const barsPerPage = 5;
 
-  const labels = Object.keys(xpByPath);
-  const values = Object.values(xpByPath);
-  const maxValue = Math.max(...values);
+  function renderXpChart(xpData) {
+    const chartContainer = document.querySelector("#xp-chart");
+    chartContainer.innerHTML = "";
 
-  const start = currentPage * barsPerPage;
-  const end = start + barsPerPage;
-  const pageLabels = labels.slice(start, end);
-  const pageValues = values.slice(start, end);
+    if (!xpData || xpData.length === 0) {
+      chartContainer.innerHTML =
+        '<p class="text-gray-500">No XP data available.</p>';
+      return;
+    }
 
-  const barSpacing = 100;
-  const barWidth = 40;
-  const chartWidth = barsPerPage * barSpacing + 100;
+    const xpByPath = {};
+    xpData.forEach(({ path, amount }) => {
+      const key = path || "Unknown";
+      xpByPath[key] = (xpByPath[key] || 0) + parseFloat(amount);
+    });
 
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "100%");
-  svg.setAttribute("height", CHART_HEIGHT);
-  svg.setAttribute("viewBox", `0 0 ${chartWidth} ${CHART_HEIGHT}`);
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    const labels = Object.keys(xpByPath);
+    const values = Object.values(xpByPath);
+    const maxValue = Math.max(...values);
 
-  pageLabels.forEach((label, i) => {
-    const value = pageValues[i];
-    const barHeight =
-      (value / maxValue) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
-    const x = i * barSpacing + 60;
-    const y = CHART_HEIGHT - BOTTOM_PADDING - barHeight;
+    const start = currentPage * barsPerPage;
+    const end = start + barsPerPage;
+    const pageLabels = labels.slice(start, end);
+    const pageValues = values.slice(start, end);
 
-    const rect = document.createElementNS(svgNS, "rect");
-    rect.setAttribute("x", x);
-    rect.setAttribute("y", y);
-    rect.setAttribute("width", barWidth);
-    rect.setAttribute("height", barHeight);
-    rect.setAttribute("fill", "#3B82F6");
-    rect.setAttribute("rx", 4);
+    const barSpacing = 100;
+    const barWidth = 40;
+    const chartWidth = barsPerPage * barSpacing + 100;
 
-    const title = document.createElementNS(svgNS, "title");
-    title.textContent = `${label}: ${formatXP(value)}`;
-    rect.appendChild(title);
-    svg.appendChild(rect);
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", CHART_HEIGHT);
+    svg.setAttribute("viewBox", `0 0 ${chartWidth} ${CHART_HEIGHT}`);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-    const valueText = document.createElementNS(svgNS, "text");
-    valueText.setAttribute("x", x + barWidth / 2);
-    valueText.setAttribute("y", y - 8);
-    valueText.setAttribute("text-anchor", "middle");
-    valueText.setAttribute("font-size", "18");
-    valueText.setAttribute("fill", "#f3f4f6");
-    valueText.textContent = formatXP(value);
-    svg.appendChild(valueText);
+    pageLabels.forEach((label, i) => {
+      const value = pageValues[i];
+      const barHeight =
+        (value / maxValue) * (CHART_HEIGHT - TOP_PADDING - BOTTOM_PADDING);
+      const x = i * barSpacing + 60;
+      const y = CHART_HEIGHT - BOTTOM_PADDING - barHeight;
 
-    const labelText = document.createElementNS(svgNS, "text");
-    const labelX = x + barWidth + 20;
-    const labelY = CHART_HEIGHT - BOTTOM_PADDING;
-    labelText.setAttribute("x", labelX);
-    labelText.setAttribute("y", labelY);
-    labelText.setAttribute("text-anchor", "start");
-    labelText.setAttribute("font-size", "18");
-    labelText.setAttribute("fill", "#8e949e60");
-    labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
-    labelText.textContent = label.split("/").pop();
-    svg.appendChild(labelText);
-  });
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", y);
+      rect.setAttribute("width", barWidth);
+      rect.setAttribute("height", barHeight);
+      rect.setAttribute("fill", "#3B82F6");
+      rect.setAttribute("rx", 4);
 
-  chartContainer.appendChild(svg);
+      const title = document.createElementNS(svgNS, "title");
+      title.textContent = `${label}: ${formatXP(value)}`;
+      rect.appendChild(title);
+      svg.appendChild(rect);
 
-  const controls = document.createElement("div");
-  controls.className = "flex justify-center gap-4 mt-20";
+      const valueText = document.createElementNS(svgNS, "text");
+      valueText.setAttribute("x", x + barWidth / 2);
+      valueText.setAttribute("y", y - 8);
+      valueText.setAttribute("text-anchor", "middle");
+      valueText.setAttribute("font-size", "18");
+      valueText.setAttribute("fill", "#f3f4f6");
+      valueText.textContent = formatXP(value);
+      svg.appendChild(valueText);
 
-  const prevBtn = document.createElement("button");
-  prevBtn.textContent = "< Prev";
-  prevBtn.disabled = currentPage === 0;
-  prevBtn.className =
-    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
-  prevBtn.onclick = () => {
-    currentPage--;
-    renderXpChart(xpData);
-  };
+      const labelText = document.createElementNS(svgNS, "text");
+      const labelX = x + barWidth + 20;
+      const labelY = CHART_HEIGHT - BOTTOM_PADDING;
+      labelText.setAttribute("x", labelX);
+      labelText.setAttribute("y", labelY);
+      labelText.setAttribute("text-anchor", "start");
+      labelText.setAttribute("font-size", "18");
+      labelText.setAttribute("fill", "#8e949e60");
+      labelText.setAttribute("transform", `rotate(-90 ${labelX} ${labelY})`);
+      labelText.textContent = label.split("/").pop();
+      svg.appendChild(labelText);
+    });
 
-  const nextBtn = document.createElement("button");
-  nextBtn.textContent = "Next >";
-  nextBtn.disabled = end >= labels.length;
-  nextBtn.className =
-    "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
-  nextBtn.onclick = () => {
-    currentPage++;
-    renderXpChart(xpData);
-  };
+    chartContainer.appendChild(svg);
 
-  controls.appendChild(prevBtn);
-  controls.appendChild(nextBtn);
-  chartContainer.appendChild(controls);
-}
+    const controls = document.createElement("div");
+    controls.className = "flex justify-center gap-4 mt-20";
 
-function displayUserData(data, selectedGroup = "bh-module") {
-  const div = document.getElementById("user-info");
-  const user = data.user_by_pk;
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "< Prev";
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.className =
+      "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
+    prevBtn.onclick = () => {
+      currentPage--;
+      renderXpChart(xpData);
+    };
 
-  if (!user) {
-    div.innerHTML = '<p class="text-red-500">User info not found.</p>';
-    return;
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next >";
+    nextBtn.disabled = end >= labels.length;
+    nextBtn.className =
+      "px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-blue-600 disabled:opacity-50";
+    nextBtn.onclick = () => {
+      currentPage++;
+      renderXpChart(xpData);
+    };
+
+    controls.appendChild(prevBtn);
+    controls.appendChild(nextBtn);
+    chartContainer.appendChild(controls);
   }
 
-  const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-  const login = user.login ? `@${user.login}` : "";
-  const email = user.email || "";
-  const received = formatXP(user.totalDown) || "";
-  const done = formatXP(user.totalUp) || "";
-  const bonus = formatXP(user.totalUpBonus) || "";
+  function displayUserData(data, selectedGroup = "bh-module") {
+    const div = document.getElementById("user-info");
+    const user = data.user_by_pk;
 
-  const filteredXp = filterXpByGroup(data.xp_view, selectedGroup);
-  const totalXP = filteredXp.reduce(
-    (sum, xp) => sum + parseFloat(xp.amount || 0),
-    0
-  );
+    if (!user) {
+      div.innerHTML = '<p class="text-red-500">User info not found.</p>';
+      return;
+    }
 
-  const upRaw = Number(user.totalUp) || 0;
-  const downRaw = Number(user.totalDown) || 0;
-  const maxBar = Math.max(upRaw, downRaw, 1);
+    const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    const login = user.login ? `@${user.login}` : "";
+    const email = user.email || "";
+    const received = formatXP(user.totalDown) || "";
+    const done = formatXP(user.totalUp) || "";
+    const bonus = formatXP(user.totalUpBonus) || "";
 
-  const donePct = (upRaw / maxBar) * 100;
-  const receivedPct = (downRaw / maxBar) * 100;
+    const filteredXp = filterXpByGroup(data.xp_view, selectedGroup);
+    const totalXP = filteredXp.reduce(
+      (sum, xp) => sum + parseFloat(xp.amount || 0),
+      0
+    );
 
-  const auditRatioText =
-    downRaw > 0 ? Math.round((upRaw / downRaw) * 10) / 10 : "∞";
+    const upRaw = Number(user.totalUp) || 0;
+    const downRaw = Number(user.totalDown) || 0;
+    const maxBar = Math.max(upRaw, downRaw, 1);
 
-  let ratioValue = downRaw > 0 ? upRaw / downRaw : Infinity;
-  let ratioMessage = "";
-  let ratioClass = "";
+    const donePct = (upRaw / maxBar) * 100;
+    const receivedPct = (downRaw / maxBar) * 100;
 
-  if (ratioValue === Infinity || ratioValue >= 2.0) {
-    ratioMessage = "Excellent! You nailed it!";
-    ratioClass = "text-green-600";
-  } else if (ratioValue >= 1.5) {
-    ratioMessage = "Great! You’re on the right track!";
-    ratioClass = "text-green-600";
-  } else if (ratioValue >= 1.0) {
-    ratioMessage = "Hmm… not bad, but you can do better!";
-    ratioClass = "text-amber-600";
-  } else {
-    ratioMessage = "Oops! You’ve got room to improve!";
-    ratioClass = "text-red-600";
-  }
+    const auditRatioText =
+      downRaw > 0 ? Math.round((upRaw / downRaw) * 10) / 10 : "∞";
 
-  div.innerHTML = `
+    let ratioValue = downRaw > 0 ? upRaw / downRaw : Infinity;
+    let ratioMessage = "";
+    let ratioClass = "";
+
+    if (ratioValue === Infinity || ratioValue >= 2.0) {
+      ratioMessage = "Excellent! You nailed it!";
+      ratioClass = "text-green-600";
+    } else if (ratioValue >= 1.5) {
+      ratioMessage = "Great! You’re on the right track!";
+      ratioClass = "text-green-600";
+    } else if (ratioValue >= 1.0) {
+      ratioMessage = "Hmm… not bad, but you can do better!";
+      ratioClass = "text-amber-600";
+    } else {
+      ratioMessage = "Oops! You’ve got room to improve!";
+      ratioClass = "text-red-600";
+    }
+
+    div.innerHTML = `
 <div class="flex flex-col md:flex-row gap-4 w-full">
   <!-- Left column: Card 1 + Card 2 stacked -->
   <div class="flex flex-col gap-4 md:flex-1 md:basis-1/3">
@@ -507,93 +514,94 @@ function displayUserData(data, selectedGroup = "bh-module") {
 </div>
 `;
 
-  renderXpChart(filteredXp);
-  renderAttemptsToSuccessChart(data.progress);
+    renderXpChart(filteredXp);
+    renderAttemptsToSuccessChart(data.progress);
 
-  setupXpButtons(selectedGroup);
-}
+    setupXpButtons(selectedGroup);
+  }
 
-function setupXpButtons(selectedGroup) {
-  const buttons = document.querySelectorAll("#xp-group-buttons .xp-btn");
-  buttons.forEach((btn) => {
-    if (btn.dataset.group === selectedGroup) {
-      btn.classList.add("bg-blue-500", "text-white", "border-blue-500");
-      btn.classList.remove("bg-white", "text-black", "border-gray-300");
-    } else {
-      btn.classList.add("bg-white", "text-black", "border-gray-300");
-      btn.classList.remove("bg-blue-500", "text-white", "border-blue-500");
-    }
-    btn.onclick = () => {
-      if (cachedUserData) {
-        displayUserData(cachedUserData, btn.dataset.group);
+  function setupXpButtons(selectedGroup) {
+    const buttons = document.querySelectorAll("#xp-group-buttons .xp-btn");
+    buttons.forEach((btn) => {
+      if (btn.dataset.group === selectedGroup) {
+        btn.classList.add("bg-blue-500", "text-white", "border-blue-500");
+        btn.classList.remove("bg-white", "text-black", "border-gray-300");
+      } else {
+        btn.classList.add("bg-white", "text-black", "border-gray-300");
+        btn.classList.remove("bg-blue-500", "text-white", "border-blue-500");
       }
-    };
-  });
-}
-
-function logout() {
-  localStorage.removeItem("jwt_token");
-  localStorage.removeItem("user_id");
-  window.history.pushState(null, "", window.location.href);
-  window.history.back();
-  window.history.forward();
-
-  setTimeout(function () {
-    window.location.href = "index.html";
-  }, 1000);
-}
-
-let cachedUserData = null;
-
-async function init() {
-  const token = localStorage.getItem("jwt_token");
-  if (!token) {
-    document.getElementById("user-info").innerHTML =
-      '<p class="text-red-500">No login data found. Redirecting...</p>';
-    setTimeout(() => (window.location.href = "index.html"), 2000);
-    return;
+      btn.onclick = () => {
+        if (cachedUserData) {
+          displayUserData(cachedUserData, btn.dataset.group);
+        }
+      };
+    });
   }
 
-  const payload = parseJwt(token);
-  if (!payload || !payload.sub) {
-    document.getElementById("user-info").innerHTML =
-      '<p class="text-red-500">Invalid token. Please login again.</p>';
-    return;
+  function logout() {
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("user_id");
+    window.history.pushState(null, "", window.location.href);
+    window.history.back();
+    window.history.forward();
+
+    setTimeout(function () {
+      window.location.href = "index.html";
+    }, 1000);
   }
 
-  const userId = parseInt(payload.sub, 10);
+  let cachedUserData = null;
 
-  try {
-    cachedUserData = await fetchUserData(token, userId);
-    displayUserData(cachedUserData);
-  } catch (err) {
-    document.getElementById(
-      "user-info"
-    ).innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
-  }
-}
+  async function init() {
+    const token = localStorage.getItem("jwt_token");
+    if (!token) {
+      document.getElementById("user-info").innerHTML =
+        '<p class="text-red-500">No login data found. Redirecting...</p>';
+      setTimeout(() => (window.location.href = "index.html"), 2000);
+      return;
+    }
 
-document.getElementById("user-info").addEventListener("change", (e) => {
-  if (e.target.id === "xp-group-select") {
-    const selectedGroup = e.target.value;
-    if (cachedUserData) {
-      displayUserData(cachedUserData, selectedGroup);
+    const payload = parseJwt(token);
+    if (!payload || !payload.sub) {
+      document.getElementById("user-info").innerHTML =
+        '<p class="text-red-500">Invalid token. Please login again.</p>';
+      return;
+    }
+
+    const userId = parseInt(payload.sub, 10);
+
+    try {
+      cachedUserData = await fetchUserData(token, userId);
+      displayUserData(cachedUserData);
+    } catch (err) {
+      document.getElementById(
+        "user-info"
+      ).innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
     }
   }
-});
 
-document.addEventListener("DOMContentLoaded", () => {
-  const logoutBtn = document.getElementById("logout-btn");
-  logoutBtn.addEventListener("click", logout);
-});
+  document.getElementById("user-info").addEventListener("change", (e) => {
+    if (e.target.id === "xp-group-select") {
+      const selectedGroup = e.target.value;
+      if (cachedUserData) {
+        displayUserData(cachedUserData, selectedGroup);
+      }
+    }
+  });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("jwt_token");
-  if (!token) {
-    window.location.href =
-      window.location.origin +
-      window.location.pathname.replace(/\/[^/]*$/, "/");
-  }
-});
+  document.addEventListener("DOMContentLoaded", () => {
+    const logoutBtn = document.getElementById("logout-btn");
+    logoutBtn.addEventListener("click", logout);
+  });
 
-init();
+  document.addEventListener("DOMContentLoaded", () => {
+    const token = localStorage.getItem("jwt_token");
+    if (!token) {
+      window.location.href =
+        window.location.origin +
+        window.location.pathname.replace(/\/[^/]*$/, "/");
+    }
+  });
+
+  init();
+};
