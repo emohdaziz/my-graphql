@@ -49,6 +49,8 @@ async function login() {
     output.textContent = "Login successful...";
     output.className = "mt-4 text-sm success";
 
+    history.pushState({}, "", "dashboard.html");
+
     setTimeout(() => (window.location.href = "dashboard.html"), 1000);
   } catch (err) {
     output.textContent = "Error: " + err.message;

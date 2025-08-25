@@ -534,6 +534,7 @@ function setupXpButtons(selectedGroup) {
 function logout() {
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
+  history.replaceState({}, "", "index.html");
   window.location.href =
     window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
 }
