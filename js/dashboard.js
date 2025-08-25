@@ -534,8 +534,13 @@ function setupXpButtons(selectedGroup) {
 function logout() {
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
-  window.location.href =
-    window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+  window.history.pushState(null, "", window.location.href);
+  window.history.back();
+  window.history.forward();
+
+  setTimeout(function () {
+    window.location.href = "index.html";
+  }, 1000);
 }
 
 let cachedUserData = null;
