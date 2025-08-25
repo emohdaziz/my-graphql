@@ -585,7 +585,9 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("jwt_token");
   if (!token) {
-    window.location.href = "index.html";
+    window.location.href =
+      window.location.origin +
+      window.location.pathname.replace(/\/[^/]*$/, "/");
   }
 });
 
