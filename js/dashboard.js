@@ -540,14 +540,9 @@ function setupXpButtons(selectedGroup) {
 // }
 
 function logout() {
-  // Clear localStorage (remove JWT and user info)
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
-
-  // Replace the current state to index.html, so user can't go back to the dashboard
   history.replaceState({}, "", "index.html");
-
-  // Redirect to index.html and remove the "back" button history
   window.location.replace("index.html");
 }
 
