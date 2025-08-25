@@ -531,12 +531,24 @@ function setupXpButtons(selectedGroup) {
   });
 }
 
+// function logout() {
+//   localStorage.removeItem("jwt_token");
+//   localStorage.removeItem("user_id");
+//   history.replaceState({}, "", "index.html");
+//   window.location.href =
+//     window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+// }
+
 function logout() {
+  // Clear localStorage (remove JWT and user info)
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_id");
+
+  // Replace the current state to index.html, so user can't go back to the dashboard
   history.replaceState({}, "", "index.html");
-  window.location.href =
-    window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+
+  // Redirect to index.html and remove the "back" button history
+  window.location.replace("index.html");
 }
 
 let cachedUserData = null;
